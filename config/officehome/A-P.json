@@ -1,0 +1,16 @@
+{
+    "config": "A-P",
+    "batch_size": 64,
+    "num_epochs": 200,
+    "learning_rate": 0.01,
+    "momentum": 0.9,
+    "weight_decay": 5e-4,
+    "num_samples": 4439,
+    "arch": "ViT-B/32",
+    "num_classes": 65,
+    "domain": "officehome",
+    "source_domain": "Art",
+    "target_domain": "Product",
+    "save_data": false,
+    "log_path": "./log/"
+}

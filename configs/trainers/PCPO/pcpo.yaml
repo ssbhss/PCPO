@@ -1,0 +1,66 @@
+TRAINER:
+  PCPO:
+    ARCH: "ViT-B/32"  # CLIP architecture: ViT-B/32 or RN50
+    SOURCE_ARCH: "resnet50"  # Source model architecture: resnet50 or resnet101
+    SOURCE_MODEL_PATH: ""  # Path to pre-trained source model
+    NUM_CLASSES: 31  # Number of classes (will be overridden by dataset)
+    LEARNING_RATE: 0.001  # Learning rate for prototype optimization
+    WEIGHT_DECAY: 0.0005  # Weight decay (5e-4)
+    MOMENTUM: 0.9  # Momentum for SGD
+    PROTOTYPE_EPOCHS: 200  # Number of epochs for prototype optimization
+    
+    # Dataset-specific configurations
+    DATASET_CONFIGS:
+      Office31:
+        NUM_CLASSES: 31
+        SOURCE_ARCH: "resnet50"
+        DOMAINS: ["amazon", "dslr", "webcam"]
+      
+      OfficeHome:
+        NUM_CLASSES: 65
+        SOURCE_ARCH: "resnet50"
+        DOMAINS: ["art", "clipart", "product", "real_world"]
+      
+      VisDA17:
+        NUM_CLASSES: 12
+        SOURCE_ARCH: "resnet101"
+        DOMAINS: ["train", "test"]  # train为源域，test为目标域
+      
+      miniDomainNet:
+        NUM_CLASSES: 126
+        SOURCE_ARCH: "resnet50"
+        DOMAINS: ["clipart", "painting", "real", "sketch"]  # 4个主要域
+
+DATALOADER:
+  TRAIN_X:
+    BATCH_SIZE: 64
+  TEST:
+    BATCH_SIZE: 256  # Large batch size for inference (same as original PCPO)
+  NUM_WORKERS: 12
+
+OPTIM:
+  NAME: "sgd"
+  LR: 0.001
+  MAX_EPOCH: 1  # PCPO only needs one "epoch" for inference
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 0.0005
+
+TRAIN:
+  PRINT_FREQ: 10
+
+TEST:
+  EVALUATOR: "Classification"
+  PER_CLASS_RESULT: False
+
+MODEL:
+  BACKBONE:
+    NAME: "ViT-B/32"
+
+DATASET:
+  ROOT: "data"
+  NAME: ""
+  SOURCE_DOMAINS: []
+  TARGET_DOMAINS: []
+  TARGET_DATA_DIR: ""
+
+OUTPUT_DIR: "output/pcpo"

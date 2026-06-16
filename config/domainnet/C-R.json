@@ -1,0 +1,16 @@
+{
+    "config": "C-R",
+    "batch_size": 128,
+    "num_epochs": 200,
+    "learning_rate": 0.01,
+    "momentum": 0.9,
+    "weight_decay": 5e-4,
+    "num_samples": 69622,
+    "num_classes": 126,
+    "arch": "ViT-B/32",
+    "domain": "domainnet",
+    "source_domain": "clipart",
+    "target_domain": "real",
+    "save_data": false,
+    "log_path": "./log/"
+}

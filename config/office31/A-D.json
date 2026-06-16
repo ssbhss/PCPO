@@ -1,0 +1,16 @@
+{
+    "config": "A-D",
+    "batch_size": 64,
+    "num_epochs": 200,
+    "learning_rate": 0.01,
+    "momentum": 0.9,
+    "weight_decay": 5e-4,
+    "num_samples": 498,
+    "arch": "ViT-B/32",
+    "num_classes": 31,
+    "domain": "office31",
+    "source_domain": "amazon",
+    "target_domain": "dslr",
+    "save_data": false,
+    "log_path": "./log/"
+}

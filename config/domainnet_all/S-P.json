@@ -1,0 +1,16 @@
+{
+  "config": "S-P",
+  "batch_size": 128,
+  "num_epochs": 200,
+  "learning_rate": 0.01,
+  "momentum": 0.9,
+  "weight_decay": 5e-4,
+  "num_samples": 30042,
+  "arch": "ViT-B/32",
+  "num_classes": 126,
+  "domain": "domainnet",
+  "source_domain": "sketch",
+  "target_domain": "painting",
+  "save_data": false,
+  "log_path": "./log/"
+}

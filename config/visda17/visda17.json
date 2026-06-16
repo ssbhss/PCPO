@@ -1,0 +1,16 @@
+{
+    "config": "visda17",
+    "batch_size": 64,
+    "num_epochs": 200,
+    "learning_rate": 0.01,
+    "momentum": 0.9,
+    "weight_decay": 5e-4,
+    "num_samples": 55388,
+    "arch": "ViT-B/32",
+    "num_classes": 12,
+    "domain": "visda17",
+    "source_domain": "train",
+    "target_domain": "validation",
+    "save_data": false,
+    "log_path": "./log/"
+}

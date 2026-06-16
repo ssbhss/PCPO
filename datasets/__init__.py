@@ -1,0 +1,24 @@
+from .build import DATASET_REGISTRY, build_dataset
+from .base_dataset import Datum, DatasetBase
+
+# from . import caltech101
+# from . import cifar
+# from . import domainnet
+# from . import dtd
+# from . import eurosat
+# from . import fgvc_aircraft
+# from . import food101
+# from . import imagenet
+# from . import imagenet_a
+# from . import imagenet_r
+# from . import imagenet_sketch
+# from . import imagenetv2
+# from . import mini_domainnet
+# from . import office_home
+# from . import office31
+# from . import oxford_flowers
+# from . import oxford_pets
+# from . import stanford_cars
+# from . import sun397
+# from . import ucf101
+# from . import visda17
