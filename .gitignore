@@ -139,3 +139,6 @@ pretrained_models/
 *.pt
 *.ckpt
 
+results.txt
+log/
+

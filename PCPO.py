@@ -213,7 +213,16 @@ def getAPI(args):
     else:
         api = ResNet(50, args.num_classes, pretrained=False)
     api.fc = torch.nn.Linear(api.fc.in_features, args.num_classes)
-    api.load_state_dict(torch.load('./best_model/best_resnet_' + args.source_domain + '.pth', map_location='cuda:0', weights_only=True), strict=False)
+    
+    state_dict = torch.load('./best_model/best_resnet_' + args.source_domain + '.pth', map_location='cuda:0', weights_only=True)
+    new_state_dict = {}
+    for k, v in state_dict.items():
+        if k != 'fc.weight' and k != 'fc.bias' and not k.startswith('backbone.'):
+            new_state_dict['backbone.' + k] = v
+        else:
+            new_state_dict[k] = v
+            
+    api.load_state_dict(new_state_dict, strict=True)
     return api.cuda().eval()
 
 
