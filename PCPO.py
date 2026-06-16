@@ -1,5 +1,7 @@
 import os
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 
 
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
@@ -24,11 +26,15 @@ from network.ResNet import ResNet
 from PIL import Image
 from classifier import Classifier
 
-from nvidia.dali.pipeline import Pipeline
-import nvidia.dali.fn as fn
-import nvidia.dali.types as types
-from nvidia.dali.plugin.pytorch import DALIGenericIterator
-from nvidia.dali.plugin.base_iterator import LastBatchPolicy
+try:
+    from nvidia.dali.pipeline import Pipeline
+    import nvidia.dali.fn as fn
+    import nvidia.dali.types as types
+    from nvidia.dali.plugin.pytorch import DALIGenericIterator
+    from nvidia.dali.plugin.base_iterator import LastBatchPolicy
+    HAS_DALI = True
+except ImportError:
+    HAS_DALI = False
 
 class Logger(object):
     def __init__(self, log_file):
@@ -91,7 +97,7 @@ def getClipLoader(preprocess, args):
     domain = './data/' + args.domain
     data_dir = os.path.join(domain, args.target_domain)
     data = IndexedDataset(data_dir, transform=preprocess)
-    data_loader = DataLoader(data, batch_size=2048, shuffle=False, num_workers=12)
+    data_loader = DataLoader(data, batch_size=2048, shuffle=False, num_workers=0)
     return data_loader
 
 
@@ -130,43 +136,69 @@ class ExternalInputIteratorIndices(object):
         return (batch, labels, indices)
 
 
-class ImagePipeline(Pipeline):
-    def __init__(self, batch_size, num_threads, device_id, external_data, device):
-        super(ImagePipeline, self).__init__(batch_size, num_threads, device_id)
-        self.external_data = [(x, y, z) for x, y, z in external_data]
-        self.shuffle = external_data.shuffle
-        self.num_samples = external_data.num_samples
-        self.device = device
+if HAS_DALI:
+    class ImagePipeline(Pipeline):
+        def __init__(self, batch_size, num_threads, device_id, external_data, device):
+            super(ImagePipeline, self).__init__(batch_size, num_threads, device_id)
+            self.external_data = [(x, y, z) for x, y, z in external_data]
+            self.shuffle = external_data.shuffle
+            self.num_samples = external_data.num_samples
+            self.device = device
 
-    def define_graph(self):
-        self.jpegs, self.labels, self.indices = fn.external_source(source=self.external_data, num_outputs=3,
-                                                                   device="cpu", cycle='raise')
-        if self.device == 'gpu':
-            images = fn.decoders.image(self.jpegs, device="mixed", output_type=types.RGB)
-        else:
-            images = fn.decoders.image(self.jpegs, device="cpu", output_type=types.RGB)
-        if self.shuffle:
-            images = fn.resize(images, antialias=True, resize_x=256, resize_y=256, device=self.device)
-            # images = fn.resize(images, antialias=True, resize_x=256, resize_y=256, interp_type=DALIInterpType.INTERP_CUBIC, device=self.device)
-            outputs = fn.crop_mirror_normalize(images, dtype=types.DALIDataType.FLOAT, mirror=1, crop=(224, 224),
-                                               mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
-                                               std=[0.229 * 255, 0.224 * 255, 0.225 * 255], device=self.device)
-        else:
-            images = fn.resize(images, resize_x=224, resize_y=224, antialias=True, device=self.device)
-            # images = fn.resize(images, resize_x=224, resize_y=224, interp_type=DALIInterpType.INTERP_CUBIC, antialias=True, device=self.device)
-            outputs = fn.crop_mirror_normalize(images, dtype=types.DALIDataType.FLOAT, crop=(224, 224),
-                                               mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
-                                               std=[0.229 * 255, 0.224 * 255, 0.225 * 255], output_layout='CHW',
-                                               device=self.device)
-        return outputs, self.labels, self.indices
+        def define_graph(self):
+            self.jpegs, self.labels, self.indices = fn.external_source(source=self.external_data, num_outputs=3,
+                                                                       device="cpu", cycle='raise')
+            if self.device == 'gpu':
+                images = fn.decoders.image(self.jpegs, device="mixed", output_type=types.RGB)
+            else:
+                images = fn.decoders.image(self.jpegs, device="cpu", output_type=types.RGB)
+            if self.shuffle:
+                images = fn.resize(images, antialias=True, resize_x=256, resize_y=256, device=self.device)
+                # images = fn.resize(images, antialias=True, resize_x=256, resize_y=256, interp_type=DALIInterpType.INTERP_CUBIC, device=self.device)
+                outputs = fn.crop_mirror_normalize(images, dtype=types.DALIDataType.FLOAT, mirror=1, crop=(224, 224),
+                                                   mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+                                                   std=[0.229 * 255, 0.224 * 255, 0.225 * 255], device=self.device)
+            else:
+                images = fn.resize(images, resize_x=224, resize_y=224, antialias=True, device=self.device)
+                # images = fn.resize(images, resize_x=224, resize_y=224, interp_type=DALIInterpType.INTERP_CUBIC, antialias=True, device=self.device)
+                outputs = fn.crop_mirror_normalize(images, dtype=types.DALIDataType.FLOAT, crop=(224, 224),
+                                                   mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+                                                   std=[0.229 * 255, 0.224 * 255, 0.225 * 255], output_layout='CHW',
+                                                   device=self.device)
+            return outputs, self.labels, self.indices
+else:
+    class ImagePipeline(object):
+        pass
 
 
 def load_data(root_path, domain, batch_size, tar, device='gpu'):
-    iterator = ExternalInputIteratorIndices(batch_size, os.path.join(root_path, domain), tar)
-    pipeline = ImagePipeline(batch_size, 12, 0, iterator, device)
-    pipeline.build()
-    return DALIGenericIterator(pipeline, ['data', 'labels', 'indices'], auto_reset=True, last_batch_padded=True,
-                               last_batch_policy=LastBatchPolicy.PARTIAL)
+    if HAS_DALI:
+        iterator = ExternalInputIteratorIndices(batch_size, os.path.join(root_path, domain), tar)
+        pipeline = ImagePipeline(batch_size, 12, 0, iterator, device)
+        pipeline.build()
+        return DALIGenericIterator(pipeline, ['data', 'labels', 'indices'], auto_reset=True, last_batch_padded=True,
+                                   last_batch_policy=LastBatchPolicy.PARTIAL)
+    else:
+        from torchvision import transforms
+        
+        class PyTorchDALIWrapper:
+            def __init__(self, dataloader):
+                self.dataloader = dataloader
+            def __iter__(self):
+                for (imgs, labels), indices in self.dataloader:
+                    yield [{"data": imgs, "labels": labels, "indices": indices}]
+            def __len__(self):
+                return len(self.dataloader)
+
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        data_dir = os.path.join(root_path, domain)
+        dataset = IndexedDataset(data_dir, transform=transform, target=tar)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=(tar == 'train'), num_workers=0)
+        return PyTorchDALIWrapper(dataloader)
 
 
 def get_loader(args):
@@ -496,12 +528,12 @@ def main():
     args.add_argument("--weight_norm_dim", type=int, default=0)
 
     args = args.parse_args()
-    # path = './config/office31/'
-    # args.config = 'A-D'
+    path = './config/office31/'
+    args.config = 'A-D'
     # path = './config/officehome/'
     # args.config = 'C-A'
-    path = './config/visda17/'
-    args.config = 'visda17'
+    # path = './config/visda17/'
+    # args.config = 'visda17'
     # path = './config/domainnet/'
     # args.config = 'P-C'
     cfg = path + args.config + '.json'
