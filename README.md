@@ -1,6 +1,7 @@
 # PCPO: Prototype-based Cross-domain Prompt Optimization
 
-This repository contains the official codebase of the paper **"PCPO: Prototype-based Cross-domain Prompt Optimization"**.
+This repository contains the official codebase of the paper **"Progressive Category Prototype Optimization for Black-Box Domain Adaptation
+"**.
 
 PCPO is designed to adapt vision-language models like CLIP to target domains under cross-domain settings through prototype-based cross-domain prompt optimization.
 
